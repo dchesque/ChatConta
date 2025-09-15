@@ -46,13 +46,17 @@ export const accountsPayableService = {
   async createAccountPayable(
     account: Omit<AccountPayable, 'id' | 'created_at' | 'updated_at' | 'user_id'>
   ): Promise<AccountPayable> {
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
+
     // Update status based on due date
     const today = new Date().toISOString().split('T')[0];
     const status = account.due_date < today ? 'overdue' : account.status;
 
     const { data, error } = await supabase
       .from('accounts_payable')
-      .insert([{ ...account, status }])
+      .insert([{ ...account, status, user_id: user.id }])
       .select(`
         *,
         category:categories(id, name, color),
@@ -142,6 +146,32 @@ export const accountsPayableService = {
       .eq('id', id);
 
     if (error) throw error;
+  },
+
+  async revertPayment(id: string): Promise<AccountPayable> {
+    const { data, error } = await supabase
+      .from('accounts_payable')
+      .update({
+        status: 'pending',
+        paid_at: null,
+        bank_account_id: null
+      })
+      .eq('id', id)
+      .select(`
+        *,
+        category:categories(id, name, color),
+        contact:contacts(id, name, type),
+        bank_account:bank_accounts(
+          id,
+          agency,
+          account_number,
+          bank:banks(name)
+        )
+      `)
+      .single();
+
+    if (error) throw error;
+    return data;
   },
 
   // Utility method to update overdue accounts

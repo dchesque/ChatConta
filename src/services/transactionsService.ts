@@ -120,9 +120,13 @@ export const transactionsService = {
   },
 
   async createTransaction(transactionData: CreateTransactionData): Promise<BankTransaction> {
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
+
     const { data, error } = await supabase
       .from('transactions')
-      .insert([transactionData])
+      .insert([{ ...transactionData, user_id: user.id }])
       .select()
       .single();
 

@@ -159,6 +159,32 @@ export const accountsReceivableService = {
     if (error) throw error;
   },
 
+  async revertReceipt(id: string): Promise<AccountReceivable> {
+    const { data, error } = await supabase
+      .from('accounts_receivable')
+      .update({
+        status: 'pending',
+        received_at: null,
+        bank_account_id: null
+      })
+      .eq('id', id)
+      .select(`
+        *,
+        contact:contacts(id, name, type, document, email, phone),
+        category:categories(id, name, color),
+        bank_account:bank_accounts(
+          id,
+          agency,
+          account_number,
+          bank:banks(name)
+        )
+      `)
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
   // Utility method to update overdue accounts
   async updateOverdueAccounts(): Promise<void> {
     const today = new Date().toISOString().split('T')[0];
