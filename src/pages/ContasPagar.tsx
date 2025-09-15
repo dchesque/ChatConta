@@ -14,8 +14,8 @@ import { AccountPayable } from '@/types/accounts';
 import { formatCurrency } from '@/utils/currency';
 import { showMessage } from '@/utils/messages';
 import { ConfirmacaoModal } from '@/components/ui/ConfirmacaoModal';
-import ContaVisualizarModal from '@/components/contasPagar/ContaVisualizarModal';
-import ContaEditarModal from '@/components/contasPagar/ContaEditarModal';
+import ContaVisualizarModalUX from '@/components/contasPagar/ContaVisualizarModalUX';
+import ContaEditarModalUX from '@/components/contasPagar/ContaEditarModalUX';
 import { accountPayableToContaPagar } from '@/utils/typeAdapters';
 
 export default function ContasPagar() {
@@ -252,7 +252,7 @@ export default function ContasPagar() {
       />
 
       {/* Modal de Visualização */}
-      <ContaVisualizarModal
+      <ContaVisualizarModalUX
         isOpen={viewModalOpen}
         onClose={() => {
           setViewModalOpen(false);
@@ -274,10 +274,11 @@ export default function ContasPagar() {
           setViewModalOpen(false);
           setDeleteModalOpen(true);
         }}
+        onReload={() => window.location.reload()}
       />
 
       {/* Modal de Edição */}
-      <ContaEditarModal
+      <ContaEditarModalUX
         isOpen={editModalOpen}
         onClose={() => {
           setEditModalOpen(false);

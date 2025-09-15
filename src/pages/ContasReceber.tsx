@@ -11,8 +11,8 @@ import { ConfirmacaoModal } from '@/components/ui/ConfirmacaoModal';
 import { FiltrosInteligentesReceber } from '@/components/contasReceber/FiltrosInteligentesReceber';
 import { ContasReceberList, ContaReceberListItem } from '@/components/contasReceber/ContasReceberList';
 import { RecebimentoModalAdvanced } from '@/components/contasReceber/RecebimentoModalAdvanced';
-import ContaReceberVisualizarModal from '@/components/contasReceber/ContaReceberVisualizarModal';
-import ContaReceberEditarModal from '@/components/contasReceber/ContaReceberEditarModal';
+import ContaReceberVisualizarModalUX from '@/components/contasReceber/ContaReceberVisualizarModalUX';
+import ContaReceberEditarModalUX from '@/components/contasReceber/ContaReceberEditarModalUX';
 import { AccountReceivable } from '@/types/accounts';
 import { processAccountReceivableForModal } from '@/utils/typeAdapters';
 
@@ -322,7 +322,7 @@ const ContasReceber: React.FC = () => {
       />
 
       {/* Modals */}
-      <ContaReceberVisualizarModal
+      <ContaReceberVisualizarModalUX
         isOpen={modalVisualizarAberto}
         onClose={() => {
           setModalVisualizarAberto(false);
@@ -345,9 +345,10 @@ const ContasReceber: React.FC = () => {
           setContaSelecionada(conta);
           setModalConfirmacaoAberto(true);
         }}
+        onReload={() => window.location.reload()}
       />
 
-      <ContaReceberEditarModal
+      <ContaReceberEditarModalUX
         isOpen={modalEditarAberto}
         onClose={() => {
           setModalEditarAberto(false);
