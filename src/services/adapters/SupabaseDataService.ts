@@ -459,9 +459,13 @@ export class SupabaseDataService implements IDataService {
     },
 
     getByVencimento: async (dataInicio: string, dataFim: string): Promise<any[]> => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user?.id) throw new Error('Usuário não autenticado');
+
       const { data, error } = await supabase
         .from('accounts_payable')
         .select('*')
+        .eq('user_id', user.user.id)
         .gte('due_date', dataInicio)
         .lte('due_date', dataFim)
         .is('deleted_at', null);
@@ -471,9 +475,13 @@ export class SupabaseDataService implements IDataService {
     },
 
     getByStatus: async (status: string): Promise<any[]> => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user?.id) throw new Error('Usuário não autenticado');
+
       const { data, error } = await supabase
         .from('accounts_payable')
         .select('*')
+        .eq('user_id', user.user.id)
         .eq('status', status)
         .is('deleted_at', null);
       
@@ -482,6 +490,9 @@ export class SupabaseDataService implements IDataService {
     },
 
     marcarComoPaga: async (id: string, dados: any): Promise<any> => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user?.id) throw new Error('Usuário não autenticado');
+
       const { data, error } = await supabase
         .from('accounts_payable')
         .update({
@@ -489,6 +500,7 @@ export class SupabaseDataService implements IDataService {
           paid_at: dados.dataPagamento
         })
         .eq('id', id)
+        .eq('user_id', user.user.id)
         .select()
         .single();
       

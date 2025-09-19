@@ -45,11 +45,17 @@ export const useDashboardCharts = () => {
     try {
       setLoading(true);
       
-      // Buscar dados reais do Supabase
+      // Buscar dados reais do Supabase com filtro por user_id
       const [{ data: contasPagar }, { data: contasReceber }, { data: categorias }] = await Promise.all([
-        supabase.from('accounts_payable').select('amount, status, due_date, category_id, category:categories(name, color)'),
-        supabase.from('accounts_receivable').select('amount, status, due_date, category_id, category:categories(name, color)'),
-        supabase.from('categories').select('id, name, color')
+        supabase.from('accounts_payable')
+          .select('amount, status, due_date, category_id, category:categories(name, color)')
+          .eq('user_id', user.id),
+        supabase.from('accounts_receivable')
+          .select('amount, status, due_date, category_id, category:categories(name, color)')
+          .eq('user_id', user.id),
+        supabase.from('categories')
+          .select('id, name, color')
+          .eq('user_id', user.id)
       ]);
 
       // Processar dados por categoria

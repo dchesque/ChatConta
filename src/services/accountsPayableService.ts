@@ -3,6 +3,10 @@ import { AccountPayable, PaymentData } from '@/types/accounts';
 
 export const accountsPayableService = {
   async getAccountsPayable(): Promise<AccountPayable[]> {
+    // Get current user to filter data
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
+
     const { data, error } = await supabase
       .from('accounts_payable')
       .select(`
@@ -16,6 +20,7 @@ export const accountsPayableService = {
           bank:banks(name)
         )
       `)
+      .eq('user_id', user.id)
       .order('due_date', { ascending: true });
 
     if (error) throw error;
@@ -23,6 +28,10 @@ export const accountsPayableService = {
   },
 
   async getAccountPayableById(id: string): Promise<AccountPayable | null> {
+    // Get current user to filter data
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
+
     const { data, error } = await supabase
       .from('accounts_payable')
       .select(`
@@ -37,6 +46,7 @@ export const accountsPayableService = {
         )
       `)
       .eq('id', id)
+      .eq('user_id', user.id)
       .maybeSingle();
 
     if (error) throw error;
@@ -80,7 +90,11 @@ export const accountsPayableService = {
   ): Promise<AccountPayable> {
     console.log('🔄 accountsPayableService.updateAccountPayable - ID:', id);
     console.log('🔄 accountsPayableService.updateAccountPayable - Updates:', updates);
-    
+
+    // Get current user to filter data
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
+
     // Update status based on due date if due_date is being updated
     if (updates.due_date && updates.status === 'pending') {
       const today = new Date().toISOString().split('T')[0];
@@ -91,6 +105,7 @@ export const accountsPayableService = {
       .from('accounts_payable')
       .update(updates)
       .eq('id', id)
+      .eq('user_id', user.id)
       .select(`
         *,
         category:categories(id, name, color),
@@ -114,6 +129,10 @@ export const accountsPayableService = {
   },
 
   async markAsPaid(id: string, paymentData: PaymentData): Promise<AccountPayable> {
+    // Get current user to filter data
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
+
     const { data, error } = await supabase
       .from('accounts_payable')
       .update({
@@ -122,6 +141,7 @@ export const accountsPayableService = {
         paid_at: paymentData.paid_at
       })
       .eq('id', id)
+      .eq('user_id', user.id)
       .select(`
         *,
         category:categories(id, name, color),
@@ -140,15 +160,24 @@ export const accountsPayableService = {
   },
 
   async deleteAccountPayable(id: string): Promise<void> {
+    // Get current user to filter data
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
+
     const { error } = await supabase
       .from('accounts_payable')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .eq('user_id', user.id);
 
     if (error) throw error;
   },
 
   async revertPayment(id: string): Promise<AccountPayable> {
+    // Get current user to filter data
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
+
     const { data, error } = await supabase
       .from('accounts_payable')
       .update({
@@ -157,6 +186,7 @@ export const accountsPayableService = {
         bank_account_id: null
       })
       .eq('id', id)
+      .eq('user_id', user.id)
       .select(`
         *,
         category:categories(id, name, color),
@@ -176,12 +206,17 @@ export const accountsPayableService = {
 
   // Utility method to update overdue accounts
   async updateOverdueAccounts(): Promise<void> {
+    // Get current user to filter data
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
+
     const today = new Date().toISOString().split('T')[0];
-    
+
     const { error } = await supabase
       .from('accounts_payable')
       .update({ status: 'overdue' })
       .eq('status', 'pending')
+      .eq('user_id', user.id)
       .lt('due_date', today);
 
     if (error) throw error;
