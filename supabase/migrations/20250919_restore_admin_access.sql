@@ -9,6 +9,12 @@
 -- 1. POLÍTICAS ADMIN PARA ACCOUNTS_PAYABLE
 -- ========================================
 
+-- Remover políticas admin antigas se existirem
+DROP POLICY IF EXISTS "Admins can view all accounts payable" ON public.accounts_payable;
+DROP POLICY IF EXISTS "Admins can insert all accounts payable" ON public.accounts_payable;
+DROP POLICY IF EXISTS "Admins can update all accounts payable" ON public.accounts_payable;
+DROP POLICY IF EXISTS "Admins can delete all accounts payable" ON public.accounts_payable;
+
 -- Admin pode ver todas as contas a pagar
 CREATE POLICY "Admins can view all accounts payable"
 ON public.accounts_payable FOR SELECT
@@ -33,6 +39,12 @@ USING (public.get_user_role() = 'admin'::app_role);
 -- ========================================
 -- 2. POLÍTICAS ADMIN PARA ACCOUNTS_RECEIVABLE
 -- ========================================
+
+-- Remover políticas admin antigas se existirem
+DROP POLICY IF EXISTS "Admins can view all accounts receivable" ON public.accounts_receivable;
+DROP POLICY IF EXISTS "Admins can insert all accounts receivable" ON public.accounts_receivable;
+DROP POLICY IF EXISTS "Admins can update all accounts receivable" ON public.accounts_receivable;
+DROP POLICY IF EXISTS "Admins can delete all accounts receivable" ON public.accounts_receivable;
 
 -- Admin pode ver todas as contas a receber
 CREATE POLICY "Admins can view all accounts receivable"
@@ -59,6 +71,12 @@ USING (public.get_user_role() = 'admin'::app_role);
 -- 3. POLÍTICAS ADMIN PARA CONTACTS
 -- ========================================
 
+-- Remover políticas admin antigas se existirem
+DROP POLICY IF EXISTS "Admins can view all contacts" ON public.contacts;
+DROP POLICY IF EXISTS "Admins can insert all contacts" ON public.contacts;
+DROP POLICY IF EXISTS "Admins can update all contacts" ON public.contacts;
+DROP POLICY IF EXISTS "Admins can delete all contacts" ON public.contacts;
+
 -- Admin pode ver todos os contatos
 CREATE POLICY "Admins can view all contacts"
 ON public.contacts FOR SELECT
@@ -83,6 +101,12 @@ USING (public.get_user_role() = 'admin'::app_role);
 -- ========================================
 -- 4. POLÍTICAS ADMIN PARA CATEGORIES
 -- ========================================
+
+-- Remover políticas admin antigas se existirem
+DROP POLICY IF EXISTS "Admins can view all categories" ON public.categories;
+DROP POLICY IF EXISTS "Admins can insert all categories" ON public.categories;
+DROP POLICY IF EXISTS "Admins can update all categories" ON public.categories;
+DROP POLICY IF EXISTS "Admins can delete all categories" ON public.categories;
 
 -- Admin pode ver todas as categorias
 CREATE POLICY "Admins can view all categories"
@@ -109,6 +133,12 @@ USING (public.get_user_role() = 'admin'::app_role);
 -- 5. POLÍTICAS ADMIN PARA BANKS
 -- ========================================
 
+-- Remover políticas admin antigas se existirem
+DROP POLICY IF EXISTS "Admins can view all banks" ON public.banks;
+DROP POLICY IF EXISTS "Admins can insert all banks" ON public.banks;
+DROP POLICY IF EXISTS "Admins can update all banks" ON public.banks;
+DROP POLICY IF EXISTS "Admins can delete all banks" ON public.banks;
+
 -- Admin pode ver todos os bancos
 CREATE POLICY "Admins can view all banks"
 ON public.banks FOR SELECT
@@ -133,6 +163,12 @@ USING (public.get_user_role() = 'admin'::app_role);
 -- ========================================
 -- 6. POLÍTICAS ADMIN PARA BANK_ACCOUNTS
 -- ========================================
+
+-- Remover políticas admin antigas se existirem
+DROP POLICY IF EXISTS "Admins can view all bank accounts" ON public.bank_accounts;
+DROP POLICY IF EXISTS "Admins can insert all bank accounts" ON public.bank_accounts;
+DROP POLICY IF EXISTS "Admins can update all bank accounts" ON public.bank_accounts;
+DROP POLICY IF EXISTS "Admins can delete all bank accounts" ON public.bank_accounts;
 
 -- Admin pode ver todas as contas bancárias
 CREATE POLICY "Admins can view all bank accounts"
@@ -214,17 +250,8 @@ WHERE schemaname = 'public'
 ORDER BY tablename, cmd;
 
 -- ========================================
--- 9. LOG DA RESTAURAÇÃO
+-- 9. LOG DA RESTAURAÇÃO (removido - audit_logs não existe)
 -- ========================================
-
-INSERT INTO public.audit_logs (action, table_name, user_id, details, created_at)
-VALUES (
-    'admin_access_restored',
-    'all_tables',
-    auth.uid(),
-    'Restored admin access policies for all main tables',
-    NOW()
-) ON CONFLICT DO NOTHING;
 
 -- Mensagem de confirmação
 DO $$
