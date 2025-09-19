@@ -199,6 +199,12 @@ USING (public.get_user_role() = 'admin'::app_role);
 DO $$
 BEGIN
     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'transactions') THEN
+        -- Remover políticas antigas primeiro
+        EXECUTE 'DROP POLICY IF EXISTS "Admins can view all transactions" ON public.transactions';
+        EXECUTE 'DROP POLICY IF EXISTS "Admins can insert all transactions" ON public.transactions';
+        EXECUTE 'DROP POLICY IF EXISTS "Admins can update all transactions" ON public.transactions';
+        EXECUTE 'DROP POLICY IF EXISTS "Admins can delete all transactions" ON public.transactions';
+
         -- Admin pode ver todas as transações
         EXECUTE 'CREATE POLICY "Admins can view all transactions"
         ON public.transactions FOR SELECT
@@ -219,6 +225,10 @@ BEGIN
         EXECUTE 'CREATE POLICY "Admins can delete all transactions"
         ON public.transactions FOR DELETE
         USING (public.get_user_role() = ''admin''::app_role)';
+
+        RAISE NOTICE 'Políticas admin para transactions criadas/atualizadas';
+    ELSE
+        RAISE NOTICE 'Tabela transactions não existe - políticas não criadas';
     END IF;
 END $$;
 
