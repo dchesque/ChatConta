@@ -1,5 +1,5 @@
 -- ========================================
--- CORREÇÃO CRÍTICA DE SEGURANÇA - CATEGORIES (VERSÃO SEGURA)
+-- CORREÇÃO CRÍTICA DE SEGURANÇA - CATEGORIES (VERSÃO FINAL)
 -- Data: 19/09/2025
 -- ========================================
 -- Esta versão preserva os dados atribuindo-os ao primeiro admin encontrado
@@ -64,6 +64,9 @@ DROP POLICY IF EXISTS "Users can update their own categories" ON public.categori
 DROP POLICY IF EXISTS "Users can delete their own categories" ON public.categories;
 DROP POLICY IF EXISTS "Admins can view all categories" ON public.categories;
 DROP POLICY IF EXISTS "Admins can manage all categories" ON public.categories;
+DROP POLICY IF EXISTS "Admins can insert all categories" ON public.categories;
+DROP POLICY IF EXISTS "Admins can update all categories" ON public.categories;
+DROP POLICY IF EXISTS "Admins can delete all categories" ON public.categories;
 
 -- 4. CRIAR POLÍTICAS DE SEGURANÇA PARA USUÁRIOS COMUNS
 
@@ -94,68 +97,32 @@ ALTER TABLE public.categories
 ALTER COLUMN user_id SET NOT NULL;
 
 -- 6. VERIFICAÇÃO DE SEGURANÇA
--- Esta query deve retornar 0 registros após a correção
 DO $$
 DECLARE
     orphan_count INTEGER;
+    total_count INTEGER;
+    users_count INTEGER;
 BEGIN
     SELECT COUNT(*) INTO orphan_count FROM public.categories WHERE user_id IS NULL;
+    SELECT COUNT(*) INTO total_count FROM public.categories;
+    SELECT COUNT(DISTINCT user_id) INTO users_count FROM public.categories;
 
     IF orphan_count = 0 THEN
-        RAISE NOTICE 'Verificação OK: Nenhum registro órfão encontrado';
+        RAISE NOTICE '✅ Verificação OK: Nenhum registro órfão encontrado';
+        RAISE NOTICE '✅ Total de categorias: %', total_count;
+        RAISE NOTICE '✅ Usuários únicos com categorias: %', users_count;
     ELSE
-        RAISE WARNING 'ATENÇÃO: Ainda existem % registros órfãos!', orphan_count;
+        RAISE WARNING '❌ ATENÇÃO: Ainda existem % registros órfãos!', orphan_count;
     END IF;
 END $$;
 
--- 7. ESTATÍSTICAS FINAIS
-SELECT
-    COUNT(*) as total_categories,
-    COUNT(DISTINCT user_id) as unique_users,
-    MIN(created_at) as oldest_category,
-    MAX(created_at) as newest_category
-FROM public.categories;
-
--- 8. LOG DA CORREÇÃO (apenas se a tabela audit_logs existir)
+-- Mensagem de confirmação final
 DO $$
 BEGIN
-    -- Verificar se a tabela audit_logs existe antes de tentar inserir
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'audit_logs') THEN
-        -- Tentar inserir com diferentes estruturas de coluna
-        BEGIN
-            -- Primeiro tentar com a estrutura completa
-            INSERT INTO public.audit_logs (action, table_name, user_id, details, created_at)
-            VALUES (
-                'security_fix_safe',
-                'categories',
-                auth.uid(),
-                'Fixed orphan records by assigning to admin/first user and enabled RLS',
-                NOW()
-            );
-        EXCEPTION WHEN undefined_column THEN
-            -- Se falhar, tentar sem a coluna details
-            BEGIN
-                INSERT INTO public.audit_logs (action, table_name, user_id, created_at)
-                VALUES (
-                    'security_fix_safe',
-                    'categories',
-                    auth.uid(),
-                    NOW()
-                );
-            EXCEPTION WHEN OTHERS THEN
-                -- Se ainda falhar, apenas registrar no log
-                RAISE NOTICE 'Audit log não pôde ser registrado, mas a correção foi aplicada';
-            END;
-        END;
-    ELSE
-        RAISE NOTICE 'Tabela audit_logs não existe - pulando registro de auditoria';
-    END IF;
-END $$;
-
--- Mensagem de confirmação
-DO $$
-BEGIN
-    RAISE NOTICE '✅ Categories table security fix (safe version) applied successfully';
-    RAISE NOTICE '✅ Orphan records were preserved and assigned to a valid user';
-    RAISE NOTICE '✅ RLS is now active with proper user isolation';
+    RAISE NOTICE '========================================';
+    RAISE NOTICE '✅ CORREÇÃO DE SEGURANÇA APLICADA';
+    RAISE NOTICE '✅ Registros órfãos foram tratados';
+    RAISE NOTICE '✅ RLS está ativo com isolamento por usuário';
+    RAISE NOTICE '✅ Constraint NOT NULL aplicada ao user_id';
+    RAISE NOTICE '========================================';
 END $$;
