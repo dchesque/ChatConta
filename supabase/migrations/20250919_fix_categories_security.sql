@@ -44,8 +44,17 @@ USING (auth.uid() = user_id);
 
 -- 5. ADICIONAR CONSTRAINT PARA GARANTIR QUE user_id NUNCA SEJA NULL
 -- Isto previne futuros registros órfãos
-ALTER TABLE public.categories
-ALTER COLUMN user_id SET NOT NULL;
+-- IMPORTANTE: Só adiciona a constraint se não houver mais valores NULL
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public.categories WHERE user_id IS NULL) THEN
+        ALTER TABLE public.categories
+        ALTER COLUMN user_id SET NOT NULL;
+        RAISE NOTICE 'Constraint NOT NULL adicionada ao user_id';
+    ELSE
+        RAISE WARNING 'Ainda existem registros com user_id NULL. Constraint NOT NULL não foi adicionada.';
+    END IF;
+END $$;
 
 -- 6. VERIFICAÇÃO DE SEGURANÇA
 -- Esta query deve retornar 0 registros após a correção
