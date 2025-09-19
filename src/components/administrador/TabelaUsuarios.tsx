@@ -1,3 +1,4 @@
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { UsuarioAdmin } from '@/types/usuarioAdmin';
@@ -31,7 +32,7 @@ interface TabelaUsuariosProps {
   onEditarUsuario: (usuario: UsuarioAdmin) => void;
 }
 
-export function TabelaUsuarios({ usuarios, loading, onEditarUsuario }: TabelaUsuariosProps) {
+export const TabelaUsuarios = React.memo(function TabelaUsuarios({ usuarios, loading, onEditarUsuario }: TabelaUsuariosProps) {
   if (loading) {
     return (
       <Card className="bg-white/80 backdrop-blur-sm border border-white/20">
@@ -181,4 +182,4 @@ export function TabelaUsuarios({ usuarios, loading, onEditarUsuario }: TabelaUsu
       </CardContent>
     </Card>
   );
-}
+});

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { createBreadcrumb } from '@/utils/breadcrumbUtils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,18 +20,54 @@ import {
 import { Input } from '@/components/ui/input';
 
 export default function UsuariosAdmin() {
+  const { isAdmin, role, loading: authLoading } = useAuth();
   const { usuarios, loading, metricas, atualizarUsuario } = useUsuariosAdmin();
-  const { isAdmin, role } = useAuth();
+
+  // Aguardar carregamento da autenticação antes de verificar
+  if (authLoading) {
+    return (
+      <div className="p-4 lg:p-8">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-gray-600">Verificando permissões...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Dupla verificação de segurança - se não for admin, não renderizar nada
   if (!isAdmin) {
     console.warn(`[SECURITY] Unauthorized direct access to /administrador/usuarios - User role: ${role}`);
-    return null;
+    return (
+      <div className="p-4 lg:p-8">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+              <span className="text-red-600 text-2xl">⚠</span>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Acesso Negado</h3>
+            <p className="text-gray-600">Você não tem permissão para acessar esta página.</p>
+          </div>
+        </div>
+      </div>
+    );
   }
   const [busca, setBusca] = useState('');
+  const [buscaDebounced, setBuscaDebounced] = useState('');
   const [filtroStatus, setFiltroStatus] = useState('todos');
   const [usuarioSelecionado, setUsuarioSelecionado] = useState<UsuarioAdmin | null>(null);
   const [modalEditarAberto, setModalEditarAberto] = useState(false);
+
+  // Debounce para busca - aguarda 300ms após o usuário parar de digitar
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setBuscaDebounced(busca);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [busca]);
 
   const breadcrumbs = [
     { label: 'Início', href: '/dashboard' },
@@ -39,38 +75,40 @@ export default function UsuariosAdmin() {
     { label: 'Gestão de Usuários' }
   ];
 
-  // Filtrar usuários baseado na busca e filtros
-  const usuariosFiltrados = usuarios.filter(usuario => {
-    const matchBusca = !busca || 
-      usuario.nome.toLowerCase().includes(busca.toLowerCase()) ||
-      usuario.email.toLowerCase().includes(busca.toLowerCase()) ||
-      usuario.documento.includes(busca);
-    
-    const matchStatus = filtroStatus === 'todos' || 
-      (filtroStatus === 'ativo' && usuario.status_assinatura === 'ativo') ||
-      (filtroStatus === 'inativo' && ['inativo', 'cancelado'].includes(usuario.status_assinatura)) ||
-      (filtroStatus === 'trial' && usuario.status_assinatura === 'trial');
-    
-    return matchBusca && matchStatus;
-  });
+  // Filtrar usuários baseado na busca (com debounce) e filtros com memoização
+  const usuariosFiltrados = useMemo(() => {
+    return usuarios.filter(usuario => {
+      const matchBusca = !buscaDebounced ||
+        usuario.nome.toLowerCase().includes(buscaDebounced.toLowerCase()) ||
+        usuario.email.toLowerCase().includes(buscaDebounced.toLowerCase()) ||
+        usuario.documento.includes(buscaDebounced);
 
-  const handleEditarUsuario = (usuario: UsuarioAdmin) => {
+      const matchStatus = filtroStatus === 'todos' ||
+        (filtroStatus === 'ativo' && usuario.status_assinatura === 'ativo') ||
+        (filtroStatus === 'inativo' && ['inativo', 'cancelado'].includes(usuario.status_assinatura)) ||
+        (filtroStatus === 'trial' && usuario.status_assinatura === 'trial');
+
+      return matchBusca && matchStatus;
+    });
+  }, [usuarios, buscaDebounced, filtroStatus]);
+
+  const handleEditarUsuario = useCallback((usuario: UsuarioAdmin) => {
     setUsuarioSelecionado(usuario);
     setModalEditarAberto(true);
-  };
+  }, []);
 
-  const handleSalvarUsuario = async (dadosUsuario: Partial<UsuarioAdmin>) => {
+  const handleSalvarUsuario = useCallback(async (dadosUsuario: Partial<UsuarioAdmin>) => {
     if (usuarioSelecionado) {
       await atualizarUsuario(usuarioSelecionado.id, dadosUsuario);
       setModalEditarAberto(false);
       setUsuarioSelecionado(null);
     }
-  };
+  }, [usuarioSelecionado, atualizarUsuario]);
 
-  const handleExportarDados = () => {
+  const handleExportarDados = useCallback(() => {
     // Implementação futura para exportar dados dos usuários
     // TODO: Exportar dados dos usuários
-  };
+  }, []);
 
   return (
     <div className="p-4 lg:p-8">

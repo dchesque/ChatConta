@@ -1,11 +1,12 @@
+import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { MetricasUsuarios as IMetricasUsuarios } from '@/types/usuarioAdmin';
 import { formatarMoeda } from '@/lib/formatacaoBrasileira';
-import { 
-  Users, 
-  UserCheck, 
-  UserX, 
-  CreditCard, 
+import {
+  Users,
+  UserCheck,
+  UserX,
+  CreditCard,
   DollarSign,
   TrendingUp,
   TrendingDown
@@ -16,7 +17,7 @@ interface MetricasUsuariosProps {
   loading: boolean;
 }
 
-export function MetricasUsuarios({ metricas, loading }: MetricasUsuariosProps) {
+export const MetricasUsuarios = React.memo(function MetricasUsuarios({ metricas, loading }: MetricasUsuariosProps) {
   const cartoes = [
     {
       titulo: 'Total de Usuários',
@@ -115,4 +116,4 @@ export function MetricasUsuarios({ metricas, loading }: MetricasUsuariosProps) {
       })}
     </div>
   );
-}
+});

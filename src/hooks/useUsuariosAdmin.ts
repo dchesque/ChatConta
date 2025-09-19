@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { showMessage } from '@/utils/messages';
@@ -42,10 +42,10 @@ export function useUsuariosAdmin() {
   const [usuarios, setUsuarios] = useState<UsuarioAdmin[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { user } = useAuth();
+  const { user, isAdmin, profile } = useAuth();
   const { handleError } = useErrorHandler();
 
-  const calcularMetricas = (): MetricasUsuarios => {
+  const calcularMetricas = useMemo((): MetricasUsuarios => {
     const usuariosAtivos = usuarios.filter(u => u.ativo && u.status_assinatura === 'ativo');
     const usuariosInativos = usuarios.filter(u => !u.ativo || u.status_assinatura === 'inativo');
     const assinaturasAtivas = usuarios.filter(u => ['ativo', 'trial'].includes(u.status_assinatura));
@@ -73,29 +73,18 @@ export function useUsuariosAdmin() {
       novos_usuarios_mes: novosUsuariosMes,
       cancelamentos_mes: cancelamentosMes
     };
-  };
+  }, [usuarios]);
 
-  const obterUsuarios = async () => {
-    if (!user) return;
-    
+  const obterUsuarios = useCallback(async () => {
+    if (!user || !isAdmin) {
+      console.warn('[useUsuariosAdmin] Acesso negado - usuário não é admin');
+      return;
+    }
+
     setLoading(true);
     setError(null);
-    
+
     try {
-      // Verificar se o usuário atual é admin antes de buscar dados
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuário não autenticado');
-
-      // Verificar role do usuário atual
-      const { data: currentProfile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('user_id', user.id)
-        .single();
-
-      if (currentProfile?.role !== 'admin') {
-        throw new Error('Acesso negado - apenas administradores podem ver dados de usuários');
-      }
 
       // Buscar dados reais dos usuários (apenas para admins verificados)
       const [{ data: profiles }, { data: subscriptions }] = await Promise.all([
@@ -167,7 +156,7 @@ export function useUsuariosAdmin() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, isAdmin, handleError]);
 
   const atualizarUsuario = async (usuarioId: string, dadosAtualizados: Partial<UsuarioAdmin>) => {
     try {
@@ -228,16 +217,16 @@ export function useUsuariosAdmin() {
   };
 
   useEffect(() => {
-    if (user) {
+    if (user && isAdmin && profile) {
       obterUsuarios();
     }
-  }, [user]);
+  }, [user, isAdmin, profile, obterUsuarios]);
 
   return {
     usuarios,
     loading,
     error,
-    metricas: calcularMetricas(),
+    metricas: calcularMetricas,
     obterUsuarios,
     atualizarUsuario,
     obterUsuarioPorId
