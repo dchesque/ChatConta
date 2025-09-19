@@ -38,10 +38,18 @@ export function PagadorSelector({
     const loadPagadores = async () => {
       try {
         setLoading(true);
+
+        // Verificar autenticação antes de buscar dados
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          throw new Error('Usuário não autenticado');
+        }
+
         const { data } = await supabase
           .from('contacts')
           .select('*')
           .eq('type', 'customer')
+          .eq('user_id', user.id)
           .is('deleted_at', null)
           .order('name');
         

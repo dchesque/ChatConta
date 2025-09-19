@@ -82,7 +82,22 @@ export function useUsuariosAdmin() {
     setError(null);
     
     try {
-      // Buscar dados reais dos usuários
+      // Verificar se o usuário atual é admin antes de buscar dados
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+
+      // Verificar role do usuário atual
+      const { data: currentProfile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('user_id', user.id)
+        .single();
+
+      if (currentProfile?.role !== 'admin') {
+        throw new Error('Acesso negado - apenas administradores podem ver dados de usuários');
+      }
+
+      // Buscar dados reais dos usuários (apenas para admins verificados)
       const [{ data: profiles }, { data: subscriptions }] = await Promise.all([
         supabase.from('profiles').select('*'),
         supabase.from('subscriptions').select('*')

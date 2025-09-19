@@ -44,9 +44,16 @@ export interface TransactionFilters {
 
 export const transactionsService = {
   async getTransactions(filters?: TransactionFilters): Promise<BankTransaction[]> {
+    // Verificar autenticação antes de buscar transações
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error('Usuário não autenticado');
+    }
+
     let query = supabase
       .from('transactions')
       .select('*')
+      .eq('user_id', user.id)
       .order('date', { ascending: false });
 
     if (filters?.account_id) {

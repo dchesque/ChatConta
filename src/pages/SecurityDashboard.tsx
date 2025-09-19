@@ -66,6 +66,23 @@ export default function SecurityDashboard() {
   const { data: securityEvents, isLoading: eventsLoading } = useQuery({
     queryKey: ['security-events'],
     queryFn: async (): Promise<SecurityEvent[]> => {
+      // Verificar autenticação e permissão admin
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Usuário não autenticado');
+      }
+
+      // Verificar se é admin
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('user_id', user.id)
+        .single();
+
+      if (profile?.role !== 'admin') {
+        throw new Error('Acesso negado - apenas administradores podem ver eventos de segurança');
+      }
+
       const { data, error } = await supabase
         .from('security_events')
         .select('*')

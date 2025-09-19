@@ -129,6 +129,23 @@ export class SystemConfigService {
    */
   static async getAllConfigs(): Promise<SystemConfigItem[]> {
     try {
+      // Verificar autenticação e permissão admin
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Usuário não autenticado');
+      }
+
+      // Verificar se é admin
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('user_id', user.id)
+        .single();
+
+      if (profile?.role !== 'admin') {
+        throw new Error('Acesso negado - apenas administradores podem acessar configurações do sistema');
+      }
+
       const { data: configs, error } = await supabase
         .from('system_config')
         .select('*')
