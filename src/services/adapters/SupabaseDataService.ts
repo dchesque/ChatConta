@@ -997,22 +997,42 @@ export class SupabaseDataService implements IDataService {
   // ============ BANK ACCOUNTS ============
   bankAccounts = {
     getAll: async (): Promise<any[]> => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user?.id) throw new Error('Usuário não autenticado');
+
       const { data, error } = await supabase
         .from('bank_accounts')
-        .select('*')
+        .select(`
+          *,
+          bank:banks!inner(id, name, user_id)
+        `)
+        .eq('bank.user_id', user.user.id)
         .is('deleted_at', null);
-      
+
       if (error) throw error;
       return data || [];
     },
 
     create: async (bankId: string, data: any): Promise<any> => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user?.id) throw new Error('Usuário não autenticado');
+
+      // Verificar se o banco pertence ao usuário antes de criar a conta
+      const { data: bank } = await supabase
+        .from('banks')
+        .select('id')
+        .eq('id', bankId)
+        .eq('user_id', user.user.id)
+        .maybeSingle();
+
+      if (!bank) throw new Error('Banco não encontrado ou sem permissão');
+
       const { data: result, error } = await supabase
         .from('bank_accounts')
         .insert([{ ...data, bank_id: bankId }])
         .select()
         .single();
-      
+
       if (error) throw error;
       return result;
     },
@@ -1026,57 +1046,89 @@ export class SupabaseDataService implements IDataService {
   // ============ TRANSACTIONS ============
   transactions = {
     getAll: async (filters?: any): Promise<any[]> => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user?.id) throw new Error('Usuário não autenticado');
+
       const { data, error } = await supabase
         .from('transactions')
         .select('*')
+        .eq('user_id', user.user.id)
         .is('deleted_at', null)
         .order('date', { ascending: false });
-      
+
       if (error) throw error;
       return data || [];
     },
 
     create: async (data: any): Promise<any> => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user?.id) throw new Error('Usuário não autenticado');
+
       const { data: result, error } = await supabase
         .from('transactions')
-        .insert([data])
+        .insert([{ ...data, user_id: user.user.id }])
         .select()
         .single();
-      
+
       if (error) throw error;
       return result;
     },
 
     update: async (id: string, data: any): Promise<any> => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user?.id) throw new Error('Usuário não autenticado');
+
       const { data: result, error } = await supabase
         .from('transactions')
         .update(data)
         .eq('id', id)
+        .eq('user_id', user.user.id)
         .select()
         .single();
-      
+
       if (error) throw error;
       return result;
     },
 
     delete: async (id: string): Promise<void> => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user?.id) throw new Error('Usuário não autenticado');
+
       const { error } = await supabase
         .from('transactions')
         .update({ deleted_at: new Date().toISOString() })
-        .eq('id', id);
-      
+        .eq('id', id)
+        .eq('user_id', user.user.id);
+
       if (error) throw error;
     },
 
     getStatement: async (accountId: string, startDate: Date, endDate: Date): Promise<any[]> => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user?.id) throw new Error('Usuário não autenticado');
+
+      // Verificar se a conta bancária pertence ao usuário
+      const { data: account } = await supabase
+        .from('bank_accounts')
+        .select(`
+          id,
+          bank:banks!inner(user_id)
+        `)
+        .eq('id', accountId)
+        .eq('bank.user_id', user.user.id)
+        .maybeSingle();
+
+      if (!account) throw new Error('Conta bancária não encontrada ou sem permissão');
+
       const { data, error } = await supabase
         .from('transactions')
         .select('*')
         .eq('from_account_id', accountId)
+        .eq('user_id', user.user.id)
         .gte('date', startDate.toISOString())
         .lte('date', endDate.toISOString())
         .order('date', { ascending: false });
-      
+
       if (error) throw error;
       return data || [];
     }

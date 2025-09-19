@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,7 +9,6 @@ import { Plus, MoreHorizontal, Edit, Trash2, CreditCard, Key, Building2 } from '
 import { BankWithAccounts, BankAccount } from '@/types/bank';
 import { useBankAccounts } from '@/hooks/useBankAccounts';
 import { BankAccountModal } from './BankAccountModal';
-import { ConfirmacaoModal } from '@/components/ui/ConfirmacaoModal';
 
 interface BankAccountsViewModalProps {
   isOpen: boolean;
@@ -29,14 +29,22 @@ export function BankAccountsViewModal({ isOpen, onClose, bank }: BankAccountsVie
   };
 
   const handleDeleteAccount = (account: BankAccount) => {
+    console.log('handleDeleteAccount called with account:', account);
     setAccountToDelete(account.id);
     setDeleteModalOpen(true);
+    console.log('Set accountToDelete to:', account.id);
   };
 
   const confirmDeleteAccount = async () => {
-    if (!accountToDelete) return;
+    console.log('confirmDeleteAccount called, accountToDelete:', accountToDelete);
+    if (!accountToDelete) {
+      console.log('No accountToDelete, returning');
+      return;
+    }
     try {
+      console.log('Calling deleteAccount with:', accountToDelete);
       await deleteAccount(accountToDelete);
+      console.log('Account deleted successfully');
       setAccountToDelete(null);
       setDeleteModalOpen(false);
     } catch (error) {
@@ -217,17 +225,67 @@ export function BankAccountsViewModal({ isOpen, onClose, bank }: BankAccountsVie
         account={selectedAccount}
       />
 
-      {/* Modal de confirmação de exclusão */}
-      <ConfirmacaoModal
-        isOpen={deleteModalOpen}
-        onClose={() => {
-          setDeleteModalOpen(false);
-          setAccountToDelete(null);
-        }}
-        onConfirm={confirmDeleteAccount}
-        titulo="Excluir Conta"
-        mensagem="Tem certeza que deseja excluir esta conta? Esta ação não pode ser desfeita."
-      />
+      {/* Modal de confirmação de exclusão - renderizado via portal */}
+      {deleteModalOpen && createPortal(
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]"
+          style={{ pointerEvents: 'auto' }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setDeleteModalOpen(false);
+              setAccountToDelete(null);
+            }
+          }}
+        >
+          <div
+            className="bg-white/95 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl max-w-md w-full p-6 relative z-10"
+            style={{ pointerEvents: 'auto' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-red-100/80 rounded-lg">
+                <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 18.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Excluir Conta</h3>
+              </div>
+            </div>
+
+            <p className="text-gray-600 mb-6">
+              Tem certeza que deseja excluir esta conta? Esta ação não pode ser desfeita.
+            </p>
+
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  console.log('Cancelar clicked');
+                  setDeleteModalOpen(false);
+                  setAccountToDelete(null);
+                }}
+                className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                style={{ pointerEvents: 'auto', zIndex: 10000 }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  console.log('🔴 BOTÃO EXCLUIR CONTA CLICADO!');
+                  console.log('🔴 accountToDelete:', accountToDelete);
+                  confirmDeleteAccount();
+                }}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors cursor-pointer"
+                style={{ pointerEvents: 'auto', zIndex: 10000 }}
+              >
+                Excluir Conta
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </>
   );
 }

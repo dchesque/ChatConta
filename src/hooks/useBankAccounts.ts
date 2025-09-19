@@ -68,11 +68,16 @@ export function useBankAccounts(bankId?: string): UseBankAccountsReturn {
   };
 
   const deleteAccount = async (id: string): Promise<void> => {
+    console.log('🗑️ useBankAccounts.deleteAccount called with ID:', id);
     try {
+      console.log('🗑️ Calling banksService.deleteBankAccount...');
       await banksService.deleteBankAccount(id);
+      console.log('🗑️ banksService.deleteBankAccount completed, refreshing accounts...');
       await fetchAccounts(); // Refresh the list
+      console.log('🗑️ Accounts refreshed, showing success message');
       showMessage.deleteSuccess('Conta excluída com sucesso!');
     } catch (err) {
+      console.error('🗑️ Error in deleteAccount:', err);
       handleError(err, 'useBankAccounts.deleteAccount');
       showMessage.deleteError('Erro ao excluir conta');
       throw err;

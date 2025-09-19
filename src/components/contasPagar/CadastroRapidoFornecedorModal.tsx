@@ -77,17 +77,15 @@ export function CadastroRapidoFornecedorModal({
       erros.push('Nome é obrigatório');
     }
 
-    if (!formData.documento.trim()) {
-      erros.push('Documento é obrigatório');
-    }
-
-    // Validação básica de CPF/CNPJ
-    const documento = formData.documento.replace(/\D/g, '');
-    if (formData.tipo === 'pessoa_fisica' && documento.length !== 11) {
-      erros.push('CPF deve ter 11 dígitos');
-    }
-    if (formData.tipo === 'pessoa_juridica' && documento.length !== 14) {
-      erros.push('CNPJ deve ter 14 dígitos');
+    // Validação básica de CPF/CNPJ apenas se documento foi preenchido
+    if (formData.documento.trim()) {
+      const documento = formData.documento.replace(/\D/g, '');
+      if (formData.tipo === 'pessoa_fisica' && documento.length !== 11) {
+        erros.push('CPF deve ter 11 dígitos');
+      }
+      if (formData.tipo === 'pessoa_juridica' && documento.length !== 14) {
+        erros.push('CNPJ deve ter 14 dígitos');
+      }
     }
 
     if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
@@ -98,8 +96,14 @@ export function CadastroRapidoFornecedorModal({
   };
 
   const handleSubmit = async () => {
+    console.log('🚀 handleSubmit iniciado');
+    console.log('📝 FormData atual:', formData);
+
     const erros = validarFormulario();
+    console.log('⚠️ Erros de validação:', erros);
+
     if (erros.length > 0) {
+      console.log('❌ Validação falhou, exibindo toast');
       toast({
         title: "Erro de validação",
         description: erros.join(', '),
@@ -108,38 +112,45 @@ export function CadastroRapidoFornecedorModal({
       return;
     }
 
+    console.log('✅ Validação passou, iniciando criação');
     setLoading(true);
+
     try {
       const novoContato = {
         name: formData.nome.trim(),
         type: 'supplier',
-        document: formData.documento.replace(/\D/g, ''),
-        document_type: formData.tipo === 'pessoa_fisica' ? 'cpf' : 'cnpj',
+        document: formData.documento.trim() ? formData.documento.replace(/\D/g, '') : undefined,
+        document_type: formData.documento.trim() ? (formData.tipo === 'pessoa_fisica' ? 'cpf' : 'cnpj') : undefined,
         email: formData.email.trim() || undefined,
         phone: formData.telefone.trim() || undefined,
         category_id: formData.categoria_padrao_id,
         active: true
       };
 
+      console.log('📤 Dados para criação:', novoContato);
       const fornecedorCriado = await criarContato(novoContato);
-      
+      console.log('✅ Fornecedor criado:', fornecedorCriado);
+
       if (fornecedorCriado) {
         toast({
           title: "Credor cadastrado",
           description: `${formData.nome} foi cadastrado com sucesso!`
         });
-        
+
+        console.log('🔄 Chamando onFornecedorCriado');
         onFornecedorCriado(fornecedorCriado);
+        console.log('🚪 Fechando modal');
         onOpenChange(false);
       }
     } catch (error) {
-      console.error('Erro ao criar fornecedor:', error);
+      console.error('❌ Erro ao criar fornecedor:', error);
       toast({
         title: "Erro ao cadastrar",
         description: "Não foi possível cadastrar o credor. Tente novamente.",
         variant: "destructive"
       });
     } finally {
+      console.log('🏁 Finalizando loading');
       setLoading(false);
     }
   };
@@ -229,7 +240,7 @@ export function CadastroRapidoFornecedorModal({
 
             <div className="space-y-2">
               <Label htmlFor="documento">
-                {formData.tipo === 'pessoa_fisica' ? 'CPF' : 'CNPJ'} *
+                {formData.tipo === 'pessoa_fisica' ? 'CPF' : 'CNPJ'}
               </Label>
               <Input
                 id="documento"
@@ -309,7 +320,10 @@ export function CadastroRapidoFornecedorModal({
             </Button>
             
             <Button
-              onClick={handleSubmit}
+              onClick={() => {
+                console.log('🖱️ Botão Salvar clicado!');
+                handleSubmit();
+              }}
               disabled={loading}
               className="btn-primary"
             >

@@ -1,16 +1,23 @@
 # 🔒 CORREÇÕES CRÍTICAS DE SEGURANÇA
 
-## 🚨 PROBLEMAS IDENTIFICADOS
+## 🚨 PROBLEMAS IDENTIFICADOS (19/09/2025)
 
 Foi identificado um **problema crítico de segurança** no sistema onde usuários estavam vendo dados de outros usuários devido à falta de isolamento adequado entre contas.
 
-### Arquivos com Problemas:
+### Arquivos com Problemas Iniciais:
 
 1. **`src/services/accountsReceivableService.ts`** - ❌ SEM filtro `user_id`
 2. **`src/services/categoriesService.ts`** - ❌ SEM filtro `user_id` nas consultas
 3. **`src/services/banksService.ts`** - ❌ SEM filtro `user_id`
 4. **`src/hooks/useContatos.ts`** - ❌ SEM filtro `user_id`
 5. **`src/services/adapters/SupabaseDataService.ts`** - ❌ Contas a receber sem filtro
+
+### Problemas Adicionais Encontrados (19/09/2025):
+
+6. **`src/services/adapters/SupabaseDataService.ts`** - ❌ `bankAccounts` sem filtro
+7. **`src/services/adapters/SupabaseDataService.ts`** - ❌ `transactions` sem filtro
+8. **Tabela `categories`** - ❌ 49 registros órfãos com `user_id = NULL`
+9. **Políticas RLS Admin** - ❌ Removidas acidentalmente em migração anterior
 
 ## ✅ CORREÇÕES IMPLEMENTADAS
 
@@ -33,9 +40,12 @@ Foi identificado um **problema crítico de segurança** no sistema onde usuário
 - ✅ Filtro `user_id` na consulta principal
 - ✅ Isolamento de contatos por usuário
 
-### 5. **SupabaseDataService.ts**
+### 5. **SupabaseDataService.ts** (CORREÇÃO COMPLETA 19/09/2025)
 - ✅ Corrigido todas as seções: contas a receber, fornecedores, contatos, categorias, bancos
 - ✅ Consistência com o padrão já usado em contas a pagar
+- ✅ **CRÍTICO**: Corrigido `bankAccounts.getAll()` e `bankAccounts.create()` sem proteção
+- ✅ **CRÍTICO**: Corrigido toda seção `transactions` sem filtro `user_id`
+- ✅ Implementado verificação cascata para contas bancárias
 
 ## 🛡️ CONFIGURAÇÃO DE RLS (ROW LEVEL SECURITY)
 
@@ -87,12 +97,30 @@ npm run build:dev  # ✅ Compilado com sucesso
    - Erro específico "Usuário não autenticado"
    - Proteção contra tentativas não autorizadas
 
+## 🆕 MIGRAÇÕES CRIADAS (19/09/2025)
+
+### 1. **20250919_fix_categories_security.sql**
+- Limpa registros órfãos (user_id = NULL)
+- Ativa RLS na tabela categories
+- Adiciona constraint NOT NULL em user_id
+- Implementa políticas de segurança completas
+
+### 2. **20250919_restore_admin_access.sql**
+- Restaura políticas admin para todas as tabelas
+- Admin pode ver e gerenciar dados de todos os usuários
+- Políticas para: SELECT, INSERT, UPDATE, DELETE
+- Compatível com função `get_user_role()`
+
 ## 🚀 PRÓXIMOS PASSOS
 
 ### 1. **URGENTE - Execute no Supabase**:
-```sql
--- Execute o arquivo supabase_rls_setup.sql
--- no SQL Editor do Supabase
+```bash
+# Via Supabase CLI
+npx supabase db push
+
+# OU manualmente no SQL Editor:
+# 1. Execute: 20250919_fix_categories_security.sql
+# 2. Execute: 20250919_restore_admin_access.sql
 ```
 
 ### 2. **Teste a Aplicação**:
@@ -116,6 +144,17 @@ npm run build:dev  # ✅ Compilado com sucesso
 
 ---
 
-**Data da Correção**: 19/09/2025
-**Status**: ✅ CORRIGIDO
-**Urgência**: 🔴 CRÍTICA - Executar RLS imediatamente
+**Data da Correção Inicial**: 19/09/2025
+**Última Atualização**: 19/09/2025 (Correções adicionais)
+**Status**: ✅ CORRIGIDO NO CÓDIGO / ⚠️ AGUARDANDO EXECUÇÃO NO SUPABASE
+**Urgência**: 🔴 CRÍTICA - Executar migrações no Supabase imediatamente
+
+## 📊 RESUMO FINAL DAS CORREÇÕES
+
+| Componente | Status | Ação Necessária |
+|------------|--------|-----------------|
+| **Frontend/Services** | ✅ SEGURO | Nenhuma |
+| **SupabaseDataService** | ✅ CORRIGIDO | Nenhuma |
+| **Migração Categories** | 📝 CRIADA | Executar no Supabase |
+| **Migração Admin** | 📝 CRIADA | Executar no Supabase |
+| **Build** | ✅ TESTADO | Funcionando |
