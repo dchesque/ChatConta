@@ -5,6 +5,10 @@ import { logService } from '@/services/logService';
 
 export const accountsReceivableService = {
   async getAccountsReceivable(): Promise<AccountReceivable[]> {
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
+
     const { data, error } = await supabase
       .from('accounts_receivable')
       .select(`
@@ -18,6 +22,7 @@ export const accountsReceivableService = {
           bank:banks(name)
         )
       `)
+      .eq('user_id', user.id)
       .order('due_date', { ascending: true });
 
     if (error) throw error;
@@ -25,6 +30,10 @@ export const accountsReceivableService = {
   },
 
   async getAccountReceivableById(id: string): Promise<AccountReceivable | null> {
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
+
     const { data, error } = await supabase
       .from('accounts_receivable')
       .select(`
@@ -39,6 +48,7 @@ export const accountsReceivableService = {
         )
       `)
       .eq('id', id)
+      .eq('user_id', user.id)
       .maybeSingle();
 
     if (error) throw error;
@@ -98,10 +108,15 @@ export const accountsReceivableService = {
       updates.status = updates.due_date < today ? 'overdue' : 'pending';
     }
 
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
+
     const { data, error } = await supabase
       .from('accounts_receivable')
       .update(updates)
       .eq('id', id)
+      .eq('user_id', user.id)
       .select(`
         *,
         contact:contacts(id, name, type, document, email, phone),
@@ -125,6 +140,10 @@ export const accountsReceivableService = {
   },
 
   async markAsReceived(id: string, receiptData: ReceiptData): Promise<AccountReceivable> {
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
+
     const { data, error } = await supabase
       .from('accounts_receivable')
       .update({
@@ -133,6 +152,7 @@ export const accountsReceivableService = {
         received_at: receiptData.received_at
       })
       .eq('id', id)
+      .eq('user_id', user.id)
       .select(`
         *,
         contact:contacts(id, name, type, document, email, phone),
@@ -151,15 +171,24 @@ export const accountsReceivableService = {
   },
 
   async deleteAccountReceivable(id: string): Promise<void> {
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
+
     const { error } = await supabase
       .from('accounts_receivable')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .eq('user_id', user.id);
 
     if (error) throw error;
   },
 
   async revertReceipt(id: string): Promise<AccountReceivable> {
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
+
     const { data, error } = await supabase
       .from('accounts_receivable')
       .update({
@@ -168,6 +197,7 @@ export const accountsReceivableService = {
         bank_account_id: null
       })
       .eq('id', id)
+      .eq('user_id', user.id)
       .select(`
         *,
         contact:contacts(id, name, type, document, email, phone),
@@ -187,12 +217,17 @@ export const accountsReceivableService = {
 
   // Utility method to update overdue accounts
   async updateOverdueAccounts(): Promise<void> {
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado');
+
     const today = new Date().toISOString().split('T')[0];
-    
+
     const { error } = await supabase
       .from('accounts_receivable')
       .update({ status: 'overdue' })
       .eq('status', 'pending')
+      .eq('user_id', user.id)
       .lt('due_date', today);
 
     if (error) throw error;

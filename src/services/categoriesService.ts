@@ -3,9 +3,16 @@ import type { Category, CreateCategory, UpdateCategory, CategoryFilters } from '
 
 export class CategoriesService {
   async list(filters?: CategoryFilters): Promise<Category[]> {
+    // Get current user
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) {
+      throw new Error('Usuário não autenticado');
+    }
+
     let query = supabase
       .from('categories')
       .select('*')
+      .eq('user_id', userData.user.id)
       .is('deleted_at', null)
       .order('name', { ascending: true });
 
@@ -61,10 +68,17 @@ export class CategoriesService {
   }
 
   async update(id: string, updates: Partial<CreateCategory>): Promise<Category> {
+    // Get current user
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) {
+      throw new Error('Usuário não autenticado');
+    }
+
     const { data, error } = await supabase
       .from('categories')
       .update(updates)
       .eq('id', id)
+      .eq('user_id', userData.user.id)
       .select()
       .single();
 
@@ -83,13 +97,19 @@ export class CategoriesService {
   }
 
   async delete(id: string): Promise<void> {
+    // Get current user
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) {
+      throw new Error('Usuário não autenticado');
+    }
+
     // TODO: Verificar se há vínculos com contas a pagar/receber quando implementado
     // const { data: linkedAccounts } = await supabase
     //   .from('contas_pagar')
     //   .select('id')
     //   .eq('category_id', id)
     //   .limit(1);
-    
+
     // if (linkedAccounts && linkedAccounts.length > 0) {
     //   throw new Error('Não é possível excluir categoria vinculada a contas');
     // }
@@ -97,7 +117,8 @@ export class CategoriesService {
     const { error } = await supabase
       .from('categories')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .eq('user_id', userData.user.id);
 
     if (error) {
       console.error('Erro ao excluir categoria:', error);
@@ -106,10 +127,17 @@ export class CategoriesService {
   }
 
   async getById(id: string): Promise<Category | null> {
+    // Get current user
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) {
+      throw new Error('Usuário não autenticado');
+    }
+
     const { data, error } = await supabase
       .from('categories')
       .select('*')
       .eq('id', id)
+      .eq('user_id', userData.user.id)
       .maybeSingle();
 
     if (error) {

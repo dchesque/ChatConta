@@ -502,16 +502,20 @@ export class SupabaseDataService implements IDataService {
     getAll: async (filtros?: any): Promise<any[]> => {
       // Gera chave única do cache baseada nos filtros
       const cacheKey = `list_${JSON.stringify(filtros || {})}`;
-      
+
       // Tenta recuperar do cache
       const cached = cacheService.getReceivables<any[]>(cacheKey);
       if (cached) {
         return cached;
       }
 
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user?.id) throw new Error('Usuário não autenticado');
+
       const { data, error } = await supabase
         .from('accounts_receivable')
         .select('*')
+        .eq('user_id', user.user.id)
         .is('deleted_at', null)
         .order('due_date', { ascending: true });
       
@@ -525,10 +529,14 @@ export class SupabaseDataService implements IDataService {
     },
 
     getById: async (id: string): Promise<any | null> => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user?.id) throw new Error('Usuário não autenticado');
+
       const { data, error } = await supabase
         .from('accounts_receivable')
         .select('*')
         .eq('id', id)
+        .eq('user_id', user.user.id)
         .maybeSingle();
       
       if (error) throw error;
@@ -536,9 +544,12 @@ export class SupabaseDataService implements IDataService {
     },
 
     create: async (data: any): Promise<any> => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user?.id) throw new Error('Usuário não autenticado');
+
       const { data: result, error } = await supabase
         .from('accounts_receivable')
-        .insert([data])
+        .insert([{ ...data, user_id: user.user.id }])
         .select()
         .single();
       
@@ -552,10 +563,14 @@ export class SupabaseDataService implements IDataService {
     },
 
     update: async (id: string, data: any): Promise<any> => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user?.id) throw new Error('Usuário não autenticado');
+
       const { data: result, error } = await supabase
         .from('accounts_receivable')
         .update(data)
         .eq('id', id)
+        .eq('user_id', user.user.id)
         .select()
         .single();
       
@@ -569,10 +584,14 @@ export class SupabaseDataService implements IDataService {
     },
 
     delete: async (id: string): Promise<void> => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user?.id) throw new Error('Usuário não autenticado');
+
       const { error } = await supabase
         .from('accounts_receivable')
         .update({ deleted_at: new Date().toISOString() })
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', user.user.id);
       
       if (error) throw error;
       
@@ -582,9 +601,13 @@ export class SupabaseDataService implements IDataService {
     },
 
     getByVencimento: async (dataInicio: string, dataFim: string): Promise<any[]> => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user?.id) throw new Error('Usuário não autenticado');
+
       const { data, error } = await supabase
         .from('accounts_receivable')
         .select('*')
+        .eq('user_id', user.user.id)
         .gte('due_date', dataInicio)
         .lte('due_date', dataFim)
         .is('deleted_at', null);
@@ -594,9 +617,13 @@ export class SupabaseDataService implements IDataService {
     },
 
     getByStatus: async (status: string): Promise<any[]> => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user?.id) throw new Error('Usuário não autenticado');
+
       const { data, error } = await supabase
         .from('accounts_receivable')
         .select('*')
+        .eq('user_id', user.user.id)
         .eq('status', status)
         .is('deleted_at', null);
       
@@ -605,6 +632,9 @@ export class SupabaseDataService implements IDataService {
     },
 
     marcarComoRecebida: async (id: string, dataRecebimento: string, valorRecebido?: number): Promise<any> => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user?.id) throw new Error('Usuário não autenticado');
+
       const { data, error } = await supabase
         .from('accounts_receivable')
         .update({
@@ -612,6 +642,7 @@ export class SupabaseDataService implements IDataService {
           received_at: dataRecebimento
         })
         .eq('id', id)
+        .eq('user_id', user.user.id)
         .select()
         .single();
       
@@ -623,58 +654,77 @@ export class SupabaseDataService implements IDataService {
   // ============ FORNECEDORES ============
   fornecedores = {
     getAll: async (filtros?: any): Promise<any[]> => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user?.id) throw new Error('Usuário não autenticado');
+
       const { data, error } = await supabase
         .from('contacts')
         .select('*')
+        .eq('user_id', user.user.id)
         .eq('type', 'supplier')
         .is('deleted_at', null)
         .order('created_at', { ascending: false });
-      
+
       if (error) throw error;
       return data || [];
     },
 
     getById: async (id: string): Promise<any | null> => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user?.id) throw new Error('Usuário não autenticado');
+
       const { data, error } = await supabase
         .from('contacts')
         .select('*')
         .eq('id', id)
+        .eq('user_id', user.user.id)
         .eq('type', 'supplier')
         .maybeSingle();
-      
+
       if (error) throw error;
       return data;
     },
 
     create: async (data: any): Promise<any> => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user?.id) throw new Error('Usuário não autenticado');
+
       const { data: result, error } = await supabase
         .from('contacts')
-        .insert([{ ...data, type: 'supplier' }])
+        .insert([{ ...data, type: 'supplier', user_id: user.user.id }])
         .select()
         .single();
-      
+
       if (error) throw error;
       return result;
     },
 
     update: async (id: string, data: any): Promise<any> => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user?.id) throw new Error('Usuário não autenticado');
+
       const { data: result, error } = await supabase
         .from('contacts')
         .update(data)
         .eq('id', id)
+        .eq('user_id', user.user.id)
         .select()
         .single();
-      
+
       if (error) throw error;
       return result;
     },
 
     delete: async (id: string): Promise<void> => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user?.id) throw new Error('Usuário não autenticado');
+
       const { error } = await supabase
         .from('contacts')
         .update({ deleted_at: new Date().toISOString() })
-        .eq('id', id);
-      
+        .eq('id', id)
+        .eq('user_id', user.user.id);
+
       if (error) throw error;
     }
   };
@@ -682,56 +732,75 @@ export class SupabaseDataService implements IDataService {
   // ============ CONTATOS ============
   contatos = {
     getAll: async (filtros?: any): Promise<any[]> => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user?.id) throw new Error('Usuário não autenticado');
+
       const { data, error } = await supabase
         .from('contacts')
         .select('*')
+        .eq('user_id', user.user.id)
         .is('deleted_at', null)
         .order('created_at', { ascending: false });
-      
+
       if (error) throw error;
       return data || [];
     },
 
     getById: async (id: string): Promise<any | null> => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user?.id) throw new Error('Usuário não autenticado');
+
       const { data, error } = await supabase
         .from('contacts')
         .select('*')
         .eq('id', id)
+        .eq('user_id', user.user.id)
         .maybeSingle();
-      
+
       if (error) throw error;
       return data;
     },
 
     create: async (data: any): Promise<any> => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user?.id) throw new Error('Usuário não autenticado');
+
       const { data: result, error } = await supabase
         .from('contacts')
-        .insert([data])
+        .insert([{ ...data, user_id: user.user.id }])
         .select()
         .single();
-      
+
       if (error) throw error;
       return result;
     },
 
     update: async (id: string, data: any): Promise<any> => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user?.id) throw new Error('Usuário não autenticado');
+
       const { data: result, error } = await supabase
         .from('contacts')
         .update(data)
         .eq('id', id)
+        .eq('user_id', user.user.id)
         .select()
         .single();
-      
+
       if (error) throw error;
       return result;
     },
 
     delete: async (id: string): Promise<void> => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user?.id) throw new Error('Usuário não autenticado');
+
       const { error } = await supabase
         .from('contacts')
         .update({ deleted_at: new Date().toISOString() })
-        .eq('id', id);
-      
+        .eq('id', id)
+        .eq('user_id', user.user.id);
+
       if (error) throw error;
     }
   };
@@ -741,16 +810,20 @@ export class SupabaseDataService implements IDataService {
     getAll: async (filtros?: any): Promise<any[]> => {
       // Gera chave única do cache baseada nos filtros
       const cacheKey = `list_${JSON.stringify(filtros || {})}`;
-      
+
       // Tenta recuperar do cache
       const cached = cacheService.getCategories<any[]>(cacheKey);
       if (cached) {
         return cached;
       }
 
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user?.id) throw new Error('Usuário não autenticado');
+
       const { data, error } = await supabase
         .from('categories')
         .select('*')
+        .eq('user_id', user.user.id)
         .is('deleted_at', null)
         .order('created_at', { ascending: false });
       
@@ -764,20 +837,27 @@ export class SupabaseDataService implements IDataService {
     },
 
     getById: async (id: string): Promise<any | null> => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user?.id) throw new Error('Usuário não autenticado');
+
       const { data, error } = await supabase
         .from('categories')
         .select('*')
         .eq('id', id)
+        .eq('user_id', user.user.id)
         .maybeSingle();
-      
+
       if (error) throw error;
       return data;
     },
 
     create: async (data: any): Promise<any> => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user?.id) throw new Error('Usuário não autenticado');
+
       const { data: result, error } = await supabase
         .from('categories')
-        .insert([data])
+        .insert([{ ...data, user_id: user.user.id }])
         .select()
         .single();
       
@@ -790,26 +870,34 @@ export class SupabaseDataService implements IDataService {
     },
 
     update: async (id: string, data: any): Promise<any> => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user?.id) throw new Error('Usuário não autenticado');
+
       const { data: result, error } = await supabase
         .from('categories')
         .update(data)
         .eq('id', id)
+        .eq('user_id', user.user.id)
         .select()
         .single();
-      
+
       if (error) throw error;
-      
+
       // Invalida cache após atualização
       cacheService.invalidateCategories();
-      
+
       return result;
     },
 
     delete: async (id: string): Promise<void> => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user?.id) throw new Error('Usuário não autenticado');
+
       const { error } = await supabase
         .from('categories')
         .update({ deleted_at: new Date().toISOString() })
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', user.user.id);
       
       if (error) throw error;
       
@@ -821,9 +909,13 @@ export class SupabaseDataService implements IDataService {
   // ============ BANCOS ============
   bancos = {
     getAll: async (filtros?: any): Promise<any[]> => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user?.id) throw new Error('Usuário não autenticado');
+
       const { data, error } = await supabase
         .from('banks')
         .select('*')
+        .eq('user_id', user.user.id)
         .is('deleted_at', null)
         .order('created_at', { ascending: false });
       
@@ -832,20 +924,27 @@ export class SupabaseDataService implements IDataService {
     },
 
     getById: async (id: string): Promise<any | null> => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user?.id) throw new Error('Usuário não autenticado');
+
       const { data, error } = await supabase
         .from('banks')
         .select('*')
         .eq('id', id)
+        .eq('user_id', user.user.id)
         .maybeSingle();
-      
+
       if (error) throw error;
       return data;
     },
 
     create: async (data: any): Promise<any> => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user?.id) throw new Error('Usuário não autenticado');
+
       const { data: result, error } = await supabase
         .from('banks')
-        .insert([data])
+        .insert([{ ...data, user_id: user.user.id }])
         .select()
         .single();
       
@@ -854,22 +953,30 @@ export class SupabaseDataService implements IDataService {
     },
 
     update: async (id: string, data: any): Promise<any> => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user?.id) throw new Error('Usuário não autenticado');
+
       const { data: result, error } = await supabase
         .from('banks')
         .update(data)
         .eq('id', id)
+        .eq('user_id', user.user.id)
         .select()
         .single();
-      
+
       if (error) throw error;
       return result;
     },
 
     delete: async (id: string): Promise<void> => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user?.id) throw new Error('Usuário não autenticado');
+
       const { error } = await supabase
         .from('banks')
         .update({ deleted_at: new Date().toISOString() })
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', user.user.id);
       
       if (error) throw error;
     }
